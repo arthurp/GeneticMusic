@@ -1,0 +1,11 @@
+syntax:glob
+*~
+\#*#
+*.hi
+*.o
+*.ll
+*.bc
+*.s
+GeneticSinger/TACTest*
+GeneticSinger/TACCompiler
+GeneticSinger/main
