@@ -126,7 +126,9 @@ prog1 = Program 10 [
     Instruction Sin (Register regTime) (Value 0.1) Y 10,
     Instruction Sin (Register regTime) (Value 0.15) Add 10,
     Instruction X (Register regTime) (Value 1) Y 0,   
-    Instruction Min (Register regTime) (Register 10) Y 10    
+    Instruction Min (Register regTime) (Register 10) Y 10,    
+    Instruction Max (Register regZero) (Register 10) Y 10,    
+    Instruction LogisticFunc (Register 10) (Register 10) Y 10    
   ]
 
 randomFromList l g = (l !! n, g')

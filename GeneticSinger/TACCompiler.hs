@@ -1,12 +1,22 @@
 {-# LANGUAGE ForeignFunctionInterface, TypeOperators, ScopedTypeVariables, FlexibleContexts, FlexibleInstances, TypeOperators #-}
+module TACCompiler( 
+  compileProgram,
+  compileProgram',
+  buildCompileState,
+  writeCodeGenModuleOpt,
+  GenState(..)
+  )
+       where
+
+import Prelude hiding (sin, exp, tan, tanh, max, min)
 
 import Data.Word
 --import Data.TypeLevel(d0, d1, d2, D10)
 
-import qualified LLVM.FFI.Core
+--import qualified LLVM.FFI.Core
 --import qualified LLVM.FFI
 import LLVM.Core
-import LLVM.Util.File
+--import LLVM.Util.File
 import LLVM.Util.Loop(Phi(..))
 import LLVM.Util.Optimize
 --import LLVM.ExecutionEngine
@@ -26,7 +36,8 @@ data GenState = GenState {
   funcTanh :: Function (Double -> IO Double),
   funcMax :: Function (Double -> Double -> IO Double),
   funcMin :: Function (Double -> Double -> IO Double),
-  funcLogistic :: Function (Double -> IO Double)
+  funcLogistic :: Function (Double -> IO Double),
+  funcWriteSample :: Function (Double -> IO ())
   }
 
 type FunctionGen r a = StateT GenState (CodeGenFunction r) a
@@ -52,8 +63,8 @@ storeReg v n = do
   lift $ store v (regs !! n)
 
 emitOperation :: Operation -> (Value Double) -> (Value Double) -> FunctionGen r (Value Double)
-emitOperation X x y = return x
-emitOperation Y x y = return y
+emitOperation X x _ = return x
+emitOperation Y _ y = return y
 emitOperation Mult x y = lift $ mul x y
 emitOperation Add x y = lift $ add x y
 emitOperation Mod x y = lift $ frem x y
@@ -75,7 +86,7 @@ emitOperation Max x y = do
 emitOperation Min x y = do 
   min <- gets funcMin
   lift $ call min x y
-emitOperation LogisticFunc x y = do 
+emitOperation LogisticFunc x _ = do 
   logistic <- gets funcLogistic
   lift $ call logistic x
 
@@ -131,23 +142,36 @@ forLoop low high start incr = do
     
 mTest2 :: CodeGenModule (Function (Word32 -> IO ()))
 mTest2 = do
+  --s <- buildCompileState
+  compileProgram prog1
+
+compileProgram :: Program -> CodeGenModule (Function (Word32 -> IO ()))
+compileProgram prog = do
+  s <- buildCompileState
+  compileProgram' prog s
+
+buildCompileState :: CodeGenModule GenState
+buildCompileState = do
   exp <- newNamedFunction ExternalLinkage "llvm.exp.f64" :: TFunction (Double -> IO Double)
   sin <- newNamedFunction ExternalLinkage "llvm.sin.f64" :: TFunction (Double -> IO Double)
   tan <- newNamedFunction ExternalLinkage "llvm.tan.f64" :: TFunction (Double -> IO Double)
   tanh <- newNamedFunction ExternalLinkage "tanh" :: TFunction (Double -> IO Double)
   logistic <- newNamedFunction ExternalLinkage "logistic" :: TFunction (Double -> IO Double)
   --addAttributes logistic [ReadNoneAttribute, NoUnwindAttribute]
-  max <- newNamedFunction ExternalLinkage "max" :: TFunction (Double -> Double -> IO Double)
+  max <- newNamedFunction ExternalLinkage "tac_max" :: TFunction (Double -> Double -> IO Double)
   --addAttributes max [ReadNoneAttribute, NoUnwindAttribute]
-  min <- newNamedFunction ExternalLinkage "min" :: TFunction (Double -> Double -> IO Double)
+  min <- newNamedFunction ExternalLinkage "tac_min" :: TFunction (Double -> Double -> IO Double)
   --addAttributes min [ReadNoneAttribute, NoUnwindAttribute]
   writeSample <- newNamedFunction ExternalLinkage "writeSample" :: TFunction (Double -> IO ())
   
-  let s = GenState {funcSin = sin, funcTan = tan, funcTanh = tanh, funcExp = exp, 
+  return GenState {funcSin = sin, funcTan = tan, funcTanh = tanh, funcExp = exp, 
                     funcLogistic = logistic, funcMax = max, funcMin = min,
-                    regSet = []}
-  
-  let Program outreg instrs = prog1
+                    regSet = [], funcWriteSample = writeSample}
+
+compileProgram' :: Program -> GenState -> CodeGenModule (Function (Word32 -> IO ()))
+compileProgram' prog s = do
+  let Program outreg instrs = prog
+      GenState {funcWriteSample = writeSample } = s
 
   createNamedFunction ExternalLinkage "generate" $ \ n -> evalFunctionGen s $ do
     allocateRegisters
@@ -157,7 +181,7 @@ mTest2 = do
     lift $ br loop
     
     lift $ defineBasicBlock loop-}
-    _ <- forLoop (valueOf 0) n () $ \ i _ -> do 
+    _ <- forLoop (valueOf 0) n () $ \ _ _ -> do 
       -- Store time
       time <- loadReg TAC.regTime
       -- Emit instructions

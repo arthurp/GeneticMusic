@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-module Main where
+module TACTrain where
 
 
 import Data.Char (chr,ord)
@@ -16,6 +16,9 @@ import TAC
 import Control.Monad.Random
 
 import Control.Monad.Identity
+import Control.Applicative
+
+import TACJIT
 
 ifRand :: (RandomGen g) => Float -> (Rand g a) -> a -> Rand g a
 ifRand prob act def = do
@@ -83,10 +86,13 @@ instance Entity Program Score () () IO where
   score _ e = do
     --print $ "Last V: " ++ (show lastv)
     --print $ "len: " ++ (show len)
+    --res <- return $ evalProgram 100 e 
+    print e
+    res <- runProgram 100 e 
+    print res
+    let vErr = abs ((head res) - (3.141579*2))
     return $ Just $ Score vErr len
     where 
-      lastv = last $ evalProgram 100 e 
-      vErr = abs (lastv - (3.141579*2))
       Program _ is = e
       len = fromIntegral $ length is
     

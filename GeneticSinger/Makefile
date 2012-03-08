@@ -1,7 +1,8 @@
 LLVMDIS=llvm-dis-2.9
 LLC=llc-2.9
+HSDEPS=TAC.hs 
 
-all : TACCompiler TAC.hs tacrts.c
+testplay : TACCompiler TAC.hs tacrts.c
 	./TACCompiler
 	$(MAKE) TACTest.ll
 	$(MAKE) TACTest
@@ -12,8 +13,8 @@ all : TACCompiler TAC.hs tacrts.c
 %.ll : %.bc
 	$(LLVMDIS) $^
 
-% : %.hs TAC.hs
-	ghc --make $^
+% : %.hs
+	ghc --make $^ $(HSDEPS)
 
 %.s : %.bc
 	$(LLC) --enable-unsafe-fp-math -O=3 $^ -o $@
@@ -21,3 +22,9 @@ all : TACCompiler TAC.hs tacrts.c
 % : %.s
 	gcc $^ tacrts.c -lm -o $@
 
+
+clean:
+	-rm *.hi
+	-rm *.o
+	-rm TACTest
+	-rm TACCompiler
