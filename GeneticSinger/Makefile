@@ -1,3 +1,6 @@
+LLVMDIS=llvm-dis-2.9
+LLC=llc-2.9
+
 all : TACCompiler TAC.hs tacrts.c
 	./TACCompiler
 	$(MAKE) TACTest.ll
@@ -7,13 +10,13 @@ all : TACCompiler TAC.hs tacrts.c
 	play TACTest.wav
 
 %.ll : %.bc
-	llvm-dis $^
+	$(LLVMDIS) $^
 
 % : %.hs TAC.hs
 	ghc --make $^
 
 %.s : %.bc
-	llc --enable-unsafe-fp-math -O=3 $^ -o $@
+	$(LLC) --enable-unsafe-fp-math -O=3 $^ -o $@
 
 % : %.s
 	gcc $^ tacrts.c -lm -o $@

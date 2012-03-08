@@ -136,11 +136,11 @@ mTest2 = do
   tan <- newNamedFunction ExternalLinkage "llvm.tan.f64" :: TFunction (Double -> IO Double)
   tanh <- newNamedFunction ExternalLinkage "tanh" :: TFunction (Double -> IO Double)
   logistic <- newNamedFunction ExternalLinkage "logistic" :: TFunction (Double -> IO Double)
-  addFuncAttributes logistic [ReadNoneAttribute, NoUnwindAttribute]
+  --addAttributes logistic [ReadNoneAttribute, NoUnwindAttribute]
   max <- newNamedFunction ExternalLinkage "max" :: TFunction (Double -> Double -> IO Double)
-  addFuncAttributes max [ReadNoneAttribute, NoUnwindAttribute]
+  --addAttributes max [ReadNoneAttribute, NoUnwindAttribute]
   min <- newNamedFunction ExternalLinkage "min" :: TFunction (Double -> Double -> IO Double)
-  addFuncAttributes min [ReadNoneAttribute, NoUnwindAttribute]
+  --addAttributes min [ReadNoneAttribute, NoUnwindAttribute]
   writeSample <- newNamedFunction ExternalLinkage "writeSample" :: TFunction (Double -> IO ())
   
   let s = GenState {funcSin = sin, funcTan = tan, funcTanh = tanh, funcExp = exp, 
